@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>GTC Location</title>
+<meta name="theme-color" content="#1f6b3e">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%231f6b3e' d='M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#eef1ee;--panel:#fff;--ink:#1b211d;--muted:#5d6861;--line:#d3dad5;--accent:#1f6b3e;--accent-ink:#fff;--soft:#dcebe1;--bad:#a3302a;--bad-soft:#f7e0de;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#121614;--panel:#1b201d;--ink:#e4e9e5;--muted:#9aa59e;--line:#2e3631;--accent:#5cbf84;--accent-ink:#0d1a12;--soft:#1f3327;--bad:#ec7f77;--bad-soft:#3a1f1d;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:480px;margin:0 auto;padding:max(20px,env(safe-area-inset-top)) 16px 40px;display:flex;flex-direction:column;gap:14px}
+h1{font-size:24px;margin:0}
+.brand{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+button,.btn{font:600 18px/1 inherit;font-family:inherit;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:16px;border-radius:10px;cursor:pointer;text-align:center;text-decoration:none;display:block;width:100%}
+button.ghost,.btn.ghost{background:transparent;color:var(--accent);font-size:16px;padding:12px}
+button:disabled{opacity:.6}
+.coords{font:600 26px/1.2 ui-monospace,Menlo,Consolas,monospace;text-align:center;user-select:all;-webkit-user-select:all;word-break:break-all}
+.sub{font-size:14px;color:var(--muted);text-align:center;margin:0}
+.ok{background:var(--soft);border-radius:8px;padding:10px 12px;font-size:15px;text-align:center}
+.err{background:var(--bad-soft);border-left:3px solid var(--bad);border-radius:8px;padding:10px 12px;font-size:15px}
+ol{margin:0;padding-left:20px;font-size:15px;color:var(--muted)}
+a{color:var(--accent)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <div><div class="brand">Green Truck Cores</div><h1>Get my location</h1></div>
+
+  <div class="card">
+    <button id="go" type="button">Get my location</button>
+    <div id="result" hidden>
+      <div class="coords" id="coords"></div>
+      <p class="sub" id="acc"></p>
+    </div>
+    <button id="copy" type="button" hidden>Copy for Cat Price Book</button>
+    <div class="ok" id="copied" hidden>Copied. Switch back to the Cat Price Book and tap <b>Paste location</b> on the Stops tab.</div>
+    <div class="err" id="err" hidden></div>
+    <a class="btn ghost" id="map" target="_blank" rel="noopener" hidden>Open in Google Maps</a>
+  </div>
+
+  <div class="card">
+    <ol>
+      <li>Tap <b>Get my location</b> and allow location the first time it asks.</li>
+      <li>Tap <b>Copy for Cat Price Book</b>.</li>
+      <li>Go back to the Cat Price Book, open <b>Stops</b>, and paste the location.</li>
+    </ol>
+    <p class="sub">Nothing is saved or sent anywhere. Your location stays on your phone until you paste it.</p>
+  </div>
+</main>
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  let text='';
+  function showErr(msg){const e=$('err');e.textContent=msg;e.hidden=!msg;}
+  function getLoc(){
+    showErr('');$('copied').hidden=true;
+    if(!navigator.geolocation){showErr('This browser can\'t share location. Try Chrome or Safari.');return;}
+    const b=$('go');b.disabled=true;b.textContent='Finding you…';
+    navigator.geolocation.getCurrentPosition(p=>{
+      const lat=p.coords.latitude.toFixed(6), lng=p.coords.longitude.toFixed(6);
+      text=lat+', '+lng;
+      $('coords').textContent=text;
+      $('acc').textContent='Accurate to about '+Math.round(p.coords.accuracy*3.281).toLocaleString('en-US')+' ft · '+new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+      $('result').hidden=false;$('copy').hidden=false;
+      const m=$('map');m.href='https://www.google.com/maps/search/?api=1&query='+lat+','+lng;m.hidden=false;
+      b.disabled=false;b.textContent='Update location';
+    },e=>{
+      b.disabled=false;b.textContent='Get my location';
+      showErr(e.code===1?'Location is turned off for this page. In Chrome: tap the icon left of the web address, then Permissions, then turn Location on. Also check that Chrome has location permission in your phone\'s settings.'
+        :e.code===3?'Getting your location took too long. Step outside or wait a moment, then try again.'
+        :'Couldn\'t get your location. Make sure location is on for your phone, then try again.');
+    },{enableHighAccuracy:true,timeout:20000,maximumAge:0});
+  }
+  async function copy(){
+    if(!text)return;
+    try{await navigator.clipboard.writeText(text);$('copied').hidden=false;}
+    catch(e){
+      const r=document.createRange();r.selectNodeContents($('coords'));const s=getSelection();s.removeAllRanges();s.addRange(r);
+      try{document.execCommand('copy');$('copied').hidden=false;}
+      catch(_){showErr('Couldn\'t copy automatically. Press and hold the numbers above, then tap Copy.');}
+    }
+  }
+  $('go').onclick=getLoc;
+  $('copy').onclick=copy;
+})();
+</script>
+</body>
+</html>
